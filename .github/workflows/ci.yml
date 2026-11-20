@@ -1,0 +1,99 @@
+# The generated queries and grammar revs match nabi-syntax, every query
+# compiles against the pinned grammars, and the extension builds.
+name: CI / Build and test the extension
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  merge_group:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dco:
+    name: DCO
+    uses: nabi-lang/.github/.github/workflows/reusable-dco.yml@v1.0.0
+
+  # Generated queries and grammar revs must match nabi-syntax.rev.
+  sync:
+    name: Check sync with nabi-syntax
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check generated files with scripts/sync
+        run: scripts/sync --check
+
+  # Every query must compile against the pinned grammars.
+  queries:
+    name: Check queries against the grammars
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Read nabi-syntax.rev
+        id: rev
+        run: echo "rev=$(cat nabi-syntax.rev)" >>"$GITHUB_OUTPUT"
+      - name: Check out nabi-syntax at the pinned rev
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: nabi-lang/nabi-syntax
+          ref: ${{ steps.rev.outputs.rev }}
+          path: nabi-syntax
+          persist-credentials: false
+      - name: Install Node.js 24
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Install nabi-syntax npm dependencies
+        run: npm ci --prefix nabi-syntax
+      - name: Compile the queries with check-queries
+        run: scripts/check-queries nabi-syntax
+
+  build:
+    name: Build the extension
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Add the wasm32-wasip2 Rust target
+        run: rustup target add wasm32-wasip2
+      - name: Check format with cargo fmt
+        run: cargo fmt --check
+      - name: Lint with cargo clippy
+        run: cargo clippy --target wasm32-wasip2 -- -D warnings
+      - name: Build with cargo build
+        run: cargo build --release --target wasm32-wasip2
+
+  # The one required check (rulesets/main.json): passes when every job
+  # passed or was skipped.
+  ci-gate:
+    name: CI gate
+    needs: [dco, sync, queries, build]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check the job results
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "results: $RESULTS"
+          for r in $RESULTS; do
+            case $r in
+              success | skipped) ;;
+              *)
+                echo "::error::a gate job did not pass: $r"
+                exit 1
+                ;;
+            esac
+          done

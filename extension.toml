@@ -1,0 +1,24 @@
+id = "nabi"
+name = "Nabi"
+version = "0.1.0"
+schema_version = 1
+authors = ["Han Damin <miniex@daminstudio.net>"]
+description = "Nabi language support: tree-sitter highlighting for .nabi and .nabion, and the nabils language server."
+repository = "https://github.com/nabi-lang/nabi.zed"
+
+[grammars.nabi]
+repository = "https://github.com/nabi-lang/nabi-syntax"
+rev = "67b51804d40737259110d88c1b64e74651c8604a"
+path = "tree-sitter/nabi"
+
+[grammars.nabion]
+repository = "https://github.com/nabi-lang/nabi-syntax"
+rev = "67b51804d40737259110d88c1b64e74651c8604a"
+path = "tree-sitter/nabion"
+
+[language_servers.nabils]
+name = "nabils"
+languages = ["Nabi"]
+
+[language_servers.nabils.language_ids]
+"Nabi" = "nabi"
