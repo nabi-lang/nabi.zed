@@ -15,7 +15,7 @@ permissions:
 jobs:
   dco:
     name: DCO
-    uses: nabi-lang/.github/.github/workflows/reusable-dco.yml@v1.0.2
+    uses: nabi-lang/.github/.github/workflows/reusable-dco.yml@v1.0.3
 
   # Generated queries and grammar revs must match nabi-syntax.rev.
   sync:
