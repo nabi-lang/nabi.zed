@@ -2,7 +2,7 @@
 
 All notable changes to this extension. Versions follow semver, independent of the Nabi toolchain.
 
-## 0.1.0 (unreleased)
+## 0.1.0 (2026-11-23)
 
 First release.
 
